@@ -1,18 +1,14 @@
+name: 📸 Captura Semanal - SOLO MANUAL
 
-name: 📸 Captura Semanal Automatizada
-
+# SOLO EJECUCIÓN MANUAL - SIN AUTOMATIZACIÓN
 on:
-  schedule:
-    # Ejecutar cada lunes a las 9:00 AM UTC (6:00 AM Argentina)
-    - cron: '0 9 * * 1'
-  
-  # Permitir ejecución manual desde GitHub
+  # Permitir SOLO ejecución manual desde GitHub
   workflow_dispatch:
     inputs:
       max_workers:
         description: 'Número de capturas simultáneas (1-3)'
         required: false
-        default: '2'
+        default: '1'
         type: choice
         options:
         - '1'
@@ -70,7 +66,7 @@ jobs:
           exit 1
         fi
         
-        # Contar URLs configuradas - INDENTACIÓN CORREGIDA
+        # Contar URLs configuradas
         urls_count=$(python3 -c "
 import json
 try:
@@ -88,30 +84,31 @@ except:
           echo "⚠️ ADVERTENCIA: No hay URLs configuradas"
         fi
         
-    - name: 📸 Ejecutar capturas semanales
+    - name: 📸 Ejecutar capturas MANUALES
       env:
-        MAX_WORKERS: ${{ github.event.inputs.max_workers || '2' }}
+        MAX_WORKERS: ${{ github.event.inputs.max_workers || '1' }}
       run: |
-        echo "🚀 Iniciando captura semanal..."
+        echo "🧪 EJECUTANDO PRUEBA MANUAL"
+        echo "================================"
         echo "⚙️ Workers simultáneos: $MAX_WORKERS"
         echo "📅 Fecha: $(date)"
+        echo "🎯 Modo: SOLO PRUEBA (no automático)"
         echo ""
         
         python3 scripts/capture.py --max-workers $MAX_WORKERS
         
-    - name: 📊 Generar reportes finales
+    - name: 📊 Generar reportes de prueba
       if: always()
       run: |
-        echo "📋 Generando reportes..."
+        echo "📋 Generando reportes de prueba..."
         
-        if [ -f "scripts/update_readme.py" ]; then
-          python3 scripts/update_readme.py
-        fi
+        # NO actualizar README en modo prueba
+        echo "ℹ️ Saltando actualización de README (modo prueba)"
         
-        # Mostrar resumen en logs - INDENTACIÓN CORREGIDA
+        # Mostrar resumen en logs
         if [ -f "capturas/latest/report.json" ]; then
           echo ""
-          echo "📊 RESUMEN DE CAPTURA:"
+          echo "📊 RESUMEN DE PRUEBA:"
           echo "====================="
           python3 -c "
 import json
@@ -128,113 +125,55 @@ except Exception as e:
 "
         fi
         
-    - name: 📦 Crear archivo comprimido de capturas
+    - name: 📦 Crear archivo comprimido de prueba
       if: success()
       run: |
-        echo "📦 Creando archivo comprimido..."
+        echo "📦 Creando archivo de prueba..."
         
-        # Crear ZIP con todas las capturas de esta semana
         if [ -d "capturas" ]; then
-          # Crear nombre con fecha
-          fecha=$(date +%Y-%m-%d)
-          zip_name="capturas-semana-$fecha"
+          fecha=$(date +%Y-%m-%d-%H%M)
+          zip_name="PRUEBA-capturas-$fecha"
           
-          # Comprimir solo archivos HTML y reportes
           cd capturas
           zip -r "../$zip_name.zip" . -i "*.html" "*.json" "*.md"
           cd ..
           
-          echo "✅ Archivo creado: $zip_name.zip"
+          echo "✅ Archivo de prueba creado: $zip_name.zip"
           
-          # Mostrar tamaño del archivo
           if [ -f "$zip_name.zip" ]; then
             size_mb=$(du -m "$zip_name.zip" | cut -f1)
-            echo "📦 Tamaño del ZIP: ${size_mb}MB"
+            echo "📦 Tamaño del ZIP de prueba: ${size_mb}MB"
           fi
         fi
         
-    - name: 📤 Subir capturas como artefactos
+    - name: 📤 Subir capturas de prueba
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: capturas-${{ github.run_number }}
+        name: PRUEBA-capturas-${{ github.run_number }}
         path: |
-          capturas-*.zip
+          PRUEBA-*.zip
           capturas/latest/
-        retention-days: 30
+        retention-days: 7
         compression-level: 0
         
-    - name: 💾 Guardar reportes en el repositorio
-      if: success()
-      run: |
-        echo "💾 Guardando reportes en Git..."
-        
-        # Configurar Git
-        git config --local user.email "actions@github.com"
-        git config --local user.name "GitHub Actions Bot"
-        
-        # Agregar solo reportes (no archivos HTML grandes)
-        git add README.md || echo "README.md no changed"
-        git add capturas/latest/report.json || echo "No report.json"
-        git add capturas/latest/summary.md || echo "No summary.md"
-        
-        # Commit solo si hay cambios - INDENTACIÓN CORREGIDA
-        if ! git diff --staged --quiet; then
-          fecha=$(date +%Y-%m-%d)
-          urls_count=$(python3 -c "
-import json
-try:
-    with open('config/urls.json', 'r') as f:
-        config = json.load(f)
-    print(len(config.get('urls', {})))
-except:
-    print('?')
-")
-          
-          git commit -m "📸 Captura automática $fecha - $urls_count URLs procesadas"
-          git push
-          echo "✅ Reportes guardados en Git"
-        else
-          echo "📊 Sin cambios en reportes"
-        fi
-        
-    - name: 🚨 Notificación de errores
-      if: failure()
-      run: |
-        echo ""
-        echo "🚨 ========================================"
-        echo "    ERROR EN CAPTURA SEMANAL"
-        echo "========================================"
-        echo ""
-        echo "❌ La captura semanal ha fallado"
-        echo "🔍 Revisa los logs arriba para más detalles"
-        echo "💡 Posibles causas:"
-        echo "   • URLs inaccesibles"
-        echo "   • Configuración incorrecta"
-        echo "   • Timeout en alguna página"
-        echo ""
-        echo "🔧 Para solucionarlo:"
-        echo "   1. Revisa config/urls.json"
-        echo "   2. Verifica que las URLs sean públicas"
-        echo "   3. Ejecuta manualmente para más detalles"
-        echo ""
-        
-    - name: ✅ Resumen final
+    - name: ✅ Resumen de prueba
       if: always()
       run: |
         echo ""
-        echo "✅ ========================================"
-        echo "    CAPTURA SEMANAL COMPLETADA"
+        echo "🧪 ========================================"
+        echo "    PRUEBA MANUAL COMPLETADA"
         echo "========================================"
         echo ""
         echo "📅 Fecha: $(date)"
-        echo "⚙️ Workflow: ${{ github.workflow }}"
+        echo "🎯 Modo: SOLO PRUEBA MANUAL"
         echo "🔢 Ejecución: #${{ github.run_number }}"
         echo ""
         echo "📊 Para ver resultados:"
-        echo "   • Ve a la pestaña 'Actions'"
-        echo "   • Descarga los 'Artifacts'"
-        echo "   • Revisa las capturas en ZIP"
+        echo "   • Descarga 'PRUEBA-capturas-XXX' en Artifacts"
+        echo "   • Revisa las capturas en el ZIP"
         echo ""
-        echo "🔄 Próxima ejecución: Próximo lunes 9:00 AM UTC"
+        echo "🚀 Si funciona bien:"
+        echo "   • Puedes habilitar la automatización semanal"
+        echo "   • O seguir ejecutando manualmente cuando necesites"
         echo ""
