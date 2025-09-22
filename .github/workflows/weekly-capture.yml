@@ -1,1 +1,240 @@
 
+name: 📸 Captura Semanal Automatizada
+
+on:
+  schedule:
+    # Ejecutar cada lunes a las 9:00 AM UTC (6:00 AM Argentina)
+    - cron: '0 9 * * 1'
+  
+  # Permitir ejecución manual desde GitHub
+  workflow_dispatch:
+    inputs:
+      max_workers:
+        description: 'Número de capturas simultáneas (1-3)'
+        required: false
+        default: '2'
+        type: choice
+        options:
+        - '1'
+        - '2'
+        - '3'
+
+jobs:
+  capture-websites:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: 🛒 Descargar código del repositorio
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Configurar Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 🟢 Configurar Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 📦 Instalar SingleFile CLI automáticamente
+      run: |
+        echo "🔧 Instalando SingleFile CLI..."
+        npm install -g single-file-cli
+        echo "✅ SingleFile CLI instalado:"
+        single-file --version
+        
+    - name: 🌐 Instalar Chrome para capturas
+      run: |
+        echo "🔧 Instalando Google Chrome..."
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+        echo "✅ Chrome instalado:"
+        google-chrome --version
+        
+    - name: 📋 Validar configuración
+      run: |
+        echo "🔍 Verificando archivos necesarios..."
+        
+        if [ ! -f "config/urls.json" ]; then
+          echo "❌ ERROR: config/urls.json no encontrado"
+          echo "💡 Crea este archivo con tus URLs"
+          exit 1
+        fi
+        
+        if [ ! -f "scripts/capture.py" ]; then
+          echo "❌ ERROR: scripts/capture.py no encontrado"
+          exit 1
+        fi
+        
+        # Contar URLs configuradas - INDENTACIÓN CORREGIDA
+        urls_count=$(python3 -c "
+import json
+try:
+    with open('config/urls.json', 'r') as f:
+        config = json.load(f)
+    print(len(config.get('urls', {})))
+except:
+    print(0)
+")
+        
+        echo "✅ Configuración válida"
+        echo "📊 URLs configuradas: $urls_count"
+        
+        if [ "$urls_count" -eq "0" ]; then
+          echo "⚠️ ADVERTENCIA: No hay URLs configuradas"
+        fi
+        
+    - name: 📸 Ejecutar capturas semanales
+      env:
+        MAX_WORKERS: ${{ github.event.inputs.max_workers || '2' }}
+      run: |
+        echo "🚀 Iniciando captura semanal..."
+        echo "⚙️ Workers simultáneos: $MAX_WORKERS"
+        echo "📅 Fecha: $(date)"
+        echo ""
+        
+        python3 scripts/capture.py --max-workers $MAX_WORKERS
+        
+    - name: 📊 Generar reportes finales
+      if: always()
+      run: |
+        echo "📋 Generando reportes..."
+        
+        if [ -f "scripts/update_readme.py" ]; then
+          python3 scripts/update_readme.py
+        fi
+        
+        # Mostrar resumen en logs - INDENTACIÓN CORREGIDA
+        if [ -f "capturas/latest/report.json" ]; then
+          echo ""
+          echo "📊 RESUMEN DE CAPTURA:"
+          echo "====================="
+          python3 -c "
+import json
+try:
+    with open('capturas/latest/report.json', 'r') as f:
+        data = json.load(f)
+    stats = data.get('estadisticas', {})
+    print(f'✅ Exitosas: {stats.get("exitosas", 0)}')
+    print(f'❌ Fallidas: {stats.get("fallidas", 0)}')
+    print(f'⏱️ Tiempo total: {stats.get("tiempo_total_segundos", 0):.1f}s')
+    print(f'💾 Tamaño total: {stats.get("tamaño_total_mb", 0):.1f} MB')
+except Exception as e:
+    print(f'Error leyendo reporte: {e}')
+"
+        fi
+        
+    - name: 📦 Crear archivo comprimido de capturas
+      if: success()
+      run: |
+        echo "📦 Creando archivo comprimido..."
+        
+        # Crear ZIP con todas las capturas de esta semana
+        if [ -d "capturas" ]; then
+          # Crear nombre con fecha
+          fecha=$(date +%Y-%m-%d)
+          zip_name="capturas-semana-$fecha"
+          
+          # Comprimir solo archivos HTML y reportes
+          cd capturas
+          zip -r "../$zip_name.zip" . -i "*.html" "*.json" "*.md"
+          cd ..
+          
+          echo "✅ Archivo creado: $zip_name.zip"
+          
+          # Mostrar tamaño del archivo
+          if [ -f "$zip_name.zip" ]; then
+            size_mb=$(du -m "$zip_name.zip" | cut -f1)
+            echo "📦 Tamaño del ZIP: ${size_mb}MB"
+          fi
+        fi
+        
+    - name: 📤 Subir capturas como artefactos
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: capturas-${{ github.run_number }}
+        path: |
+          capturas-*.zip
+          capturas/latest/
+        retention-days: 30
+        compression-level: 0
+        
+    - name: 💾 Guardar reportes en el repositorio
+      if: success()
+      run: |
+        echo "💾 Guardando reportes en Git..."
+        
+        # Configurar Git
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions Bot"
+        
+        # Agregar solo reportes (no archivos HTML grandes)
+        git add README.md || echo "README.md no changed"
+        git add capturas/latest/report.json || echo "No report.json"
+        git add capturas/latest/summary.md || echo "No summary.md"
+        
+        # Commit solo si hay cambios - INDENTACIÓN CORREGIDA
+        if ! git diff --staged --quiet; then
+          fecha=$(date +%Y-%m-%d)
+          urls_count=$(python3 -c "
+import json
+try:
+    with open('config/urls.json', 'r') as f:
+        config = json.load(f)
+    print(len(config.get('urls', {})))
+except:
+    print('?')
+")
+          
+          git commit -m "📸 Captura automática $fecha - $urls_count URLs procesadas"
+          git push
+          echo "✅ Reportes guardados en Git"
+        else
+          echo "📊 Sin cambios en reportes"
+        fi
+        
+    - name: 🚨 Notificación de errores
+      if: failure()
+      run: |
+        echo ""
+        echo "🚨 ========================================"
+        echo "    ERROR EN CAPTURA SEMANAL"
+        echo "========================================"
+        echo ""
+        echo "❌ La captura semanal ha fallado"
+        echo "🔍 Revisa los logs arriba para más detalles"
+        echo "💡 Posibles causas:"
+        echo "   • URLs inaccesibles"
+        echo "   • Configuración incorrecta"
+        echo "   • Timeout en alguna página"
+        echo ""
+        echo "🔧 Para solucionarlo:"
+        echo "   1. Revisa config/urls.json"
+        echo "   2. Verifica que las URLs sean públicas"
+        echo "   3. Ejecuta manualmente para más detalles"
+        echo ""
+        
+    - name: ✅ Resumen final
+      if: always()
+      run: |
+        echo ""
+        echo "✅ ========================================"
+        echo "    CAPTURA SEMANAL COMPLETADA"
+        echo "========================================"
+        echo ""
+        echo "📅 Fecha: $(date)"
+        echo "⚙️ Workflow: ${{ github.workflow }}"
+        echo "🔢 Ejecución: #${{ github.run_number }}"
+        echo ""
+        echo "📊 Para ver resultados:"
+        echo "   • Ve a la pestaña 'Actions'"
+        echo "   • Descarga los 'Artifacts'"
+        echo "   • Revisa las capturas en ZIP"
+        echo ""
+        echo "🔄 Próxima ejecución: Próximo lunes 9:00 AM UTC"
+        echo ""
