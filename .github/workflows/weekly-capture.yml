@@ -68,14 +68,14 @@ jobs:
         
         # Contar URLs configuradas
         urls_count=$(python3 -c "
-import json
-try:
-    with open('config/urls.json', 'r') as f:
+        import json
+        try:
+        with open('config/urls.json', 'r') as f:
         config = json.load(f)
-    print(len(config.get('urls', {})))
-except:
-    print(0)
-")
+        print(len(config.get('urls', {})))
+        except:
+        print(0)
+        ")
         
         echo "✅ Configuración válida"
         echo "📊 URLs configuradas: $urls_count"
