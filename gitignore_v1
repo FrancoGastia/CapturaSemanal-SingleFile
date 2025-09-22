@@ -1,0 +1,179 @@
+# ============================================
+# GITIGNORE OPTIMIZADO PARA CAPTURA SEMANAL
+# ============================================
+
+# Archivos HTML de capturas (muy grandes para Git)
+# Se almacenan en GitHub Artifacts, no en el repositorio
+capturas/**/*.html
+capturas/**/*.zip
+*.zip
+
+# Mantener solo estructura y reportes importantes
+!capturas/latest/report.json
+!capturas/latest/summary.md
+!capturas/**/report.json
+!capturas/**/summary.md
+
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# ============================================
+# IDEs y EDITORES
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+
+# ============================================
+# SISTEMA OPERATIVO
+# ============================================
+# Windows
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+
+# Linux
+*~
+
+# ============================================
+# LOGS y TEMPORALES
+# ============================================
+*.log
+logs/
+*.tmp
+*.temp
+*.cache
+*.bak
+*.swp
+
+# ============================================
+# CONFIGURACIÓN LOCAL
+# ============================================
+# Archivos de configuración local (si existen)
+config/local.json
+local_config.json
+.env
+.env.local
+
+# ============================================
+# TESTING LOCAL
+# ============================================
+# Resultados de pruebas locales
+test_output/
+local_captures/
+temp_captures/
+debug_output/
+
+# ============================================
+# NODE.JS (para SingleFile CLI)
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================
+# VARIOS
+# ============================================
+# Archivos de respaldo
+*.backup
+*.orig
+
+# Archivos comprimidos temporales
+*.tar.gz
+*.rar
+*.7z
+
+# Archivos de configuración de IDE específicos
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# Certificados y llaves (seguridad)
+*.pem
+*.key
+*.crt
+*.p12
+
+# ============================================
+# COMENTARIOS ÚTILES
+# ============================================
+# Este .gitignore está optimizado para:
+# 1. Mantener el repositorio liviano (sin archivos HTML grandes)
+# 2. Preservar reportes importantes para seguimiento
+# 3. Ignorar archivos temporales y de configuración local
+# 4. Mantener compatibilidad con diferentes sistemas operativos
+# 
+# Los archivos HTML de capturas se almacenan en:
+# - GitHub Artifacts (descargables por 30 días)
+# - No en el repositorio Git (para evitar que crezca mucho)
