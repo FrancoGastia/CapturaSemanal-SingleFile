@@ -1,1 +1,20 @@
-
+{
+  "descripcion": "Configuración de URLs para captura semanal automatizada en GitHub Actions",
+  "version": "1.0",
+  "autor": "Sistema de Captura Automatizado",
+  "fecha_creacion": "2024",
+  "instrucciones": [
+    "Agrega tus URLs en la sección 'urls'",
+    "Usa nombres descriptivos sin espacios (usa _ o -)",
+    "URLs deben ser públicamente accesibles",
+    "Evita URLs que requieran login",
+    "Máximo recomendado: 30-50 URLs"
+  ],
+  "urls": {
+    "despegar_argentina": "https://www.despegar.com.ar/",
+    "despegar_vuelos": "https://www.despegar.com.ar/vuelos/",
+    "despegar_hoteles": "https://www.despegar.com.ar/hoteles/",
+    "despegar_paquetes": "https://www.despegar.com.ar/paquetes/",
+    "despegar_autos": "https://www.despegar.com.ar/autos/"
+  }
+}
